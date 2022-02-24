@@ -159,15 +159,19 @@ export default function EventTags() {
     const [tagsToEdit, setTagsToEdit] = React.useState(null);
     const [newTagsFormOpened, setNewTagsFormOpened] = React.useState(false);
     const [filter, setFilter] = React.useState("");
+    const mounted = React.useRef(false);
 
     React.useEffect(() => {
+        mounted.current = true;
         setLoading(true);
         asyncRemote({
             url: `/event/tag/get${filter ? `?query=${filter}` : ""}`,
             method: "GET"
         })
         .catch(error => setError(error))
-        .then(response => { setTags(response.data); setLoading(false); })
+        .then(response => setTags(response.data))
+        .finally(() => setLoading(false));
+        return () => mounted.current = false;
     }, [refresh, filter])
 
 
@@ -208,36 +212,38 @@ export default function EventTags() {
                 onAdd={() => setNewTagsFormOpened(true)}
                 onFilter={filter => setFilter(filter)}
             />
-            <TuiForm style={{ margin: "20px" }}>
-                <TuiFormGroup>
-                    <TuiFormGroupHeader header="Event tags" description="Here you can see configuration of tagging incoming events." />
-                    <TuiFormGroupContent>
-                        {
-                            loading ? 
-                            <div style={{height: 300}}><CenteredCircularProgress /></div>
-                                :
-                                tags.length !== 0 ?
-                                tags.map(
-                                    (tagsObj, index) => <KeyValueDesc 
-                                                            key={index} 
-                                                            label={tagsObj.type} 
-                                                            description={<TuiTags tags={tagsObj.tags} />}
-                                                            value={
-                                                                <Actions 
-                                                                    tagsObj={tagsObj} 
-                                                                    handleTagsDelete={handleTagsDelete}
-                                                                    handleTagsEdit={handleTagsEdit}
-                                                                />
-                                                            } 
-                                                        /> 
-                                )
-                                    :
-                                <NoData header="There is no data here."><p>Please click New Tags button in the upper right corner.</p></NoData>
-                        }
-                        {error && <ErrorsBox errorList={getError(error)} />}
-                    </TuiFormGroupContent>
-                </TuiFormGroup>
-            </TuiForm>
+            {
+                loading ? 
+                    <div style={{height: 300}}><CenteredCircularProgress /></div>
+                        :
+                    tags.length !== 0 ?
+                        <TuiForm style={{ margin: "20px" }}>
+                            <TuiFormGroup>
+                                <TuiFormGroupHeader header="Event tags" description="Here you can see configuration of tagging incoming events." />
+                                <TuiFormGroupContent>
+                                    {
+                                        tags.map(
+                                            (tagsObj, index) => <KeyValueDesc 
+                                                                    key={index} 
+                                                                    label={tagsObj.type} 
+                                                                    description={<TuiTags tags={tagsObj.tags} />}
+                                                                    value={
+                                                                        <Actions 
+                                                                        tagsObj={tagsObj} 
+                                                                            handleTagsDelete={handleTagsDelete}
+                                                                            handleTagsEdit={handleTagsEdit}
+                                                                        />
+                                                                    } 
+                                                                /> 
+                                        )
+                                    }
+                                </TuiFormGroupContent>
+                            </TuiFormGroup>
+                        </TuiForm>
+                            :
+                        <NoData header="There is no data here."><p>Please click New Tags button in the upper right corner.</p></NoData>
+            }
+            {error && <ErrorsBox errorList={getError(error)} style={{ marginLeft: "20px", marginRight: "20px", width: "calc(100% - 40px)" }}/>}
             <FormDrawer
                 width={600}
                 onClose={() => setTagsToEdit(null)}
